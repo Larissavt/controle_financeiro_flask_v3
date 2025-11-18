@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Orçamentos - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12 col-md-8">
+            <h1 class="mb-1">
+                <i class="fas fa-bullseye"></i> Orçamentos e Metas
+            </h1>
+            <p class="text-muted">{{ mes }} de {{ ano }}</p>
+        </div>
+        <div class="col-12 col-md-4 text-md-end">
+            <a href="{{ url_for('orcamentos.criar_orcamento') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus-circle"></i> Novo Orçamento
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Limite Total</h6>
+                            <h3 class="text-info mt-2">
+                                R$ {{ "%.2f"|format(total_limite) }}
+                            </h3>
+                        </div>
+                        <i class="fas fa-wallet fa-2x text-info opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Gasto Atual</h6>
+                            <h3 class="text-warning mt-2">
+                                R$ {{ "%.2f"|format(total_gasto) }}
+                            </h3>
+                        </div>
+                        <i class="fas fa-chart-pie fa-2x text-warning opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Disponível</h6>
+                            <h3 class="text-success mt-2">
+                                R$ {{ "%.2f"|format(total_limite - total_gasto) }}
+                            </h3>
+                        </div>
+                        <i class="fas fa-arrow-up fa-2x text-success opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Percentual Usado</h6>
+                            <h3 class="text-primary mt-2">
+                                {% if total_limite > 0 %}
+                                    {{ "%.1f"|format((total_gasto / total_limite) * 100) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </h3>
+                        </div>
+                        <i class="fas fa-percent fa-2x text-primary opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-traffic-light"></i> Status dos Orçamentos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-12 col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-success mb-2">
+                                    <i class="fas fa-check-circle"></i> {{ status_ok }}
+                                </h4>
+                                <p class="text-muted mb-0">Dentro do Orçamento</p>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-warning mb-2">
+                                    <i class="fas fa-exclamation-triangle"></i> {{ status_aviso }}
+                                </h4>
+                                <p class="text-muted mb-0">Próximo ao Limite</p>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-danger mb-2">
+                                    <i class="fas fa-exclamation-circle"></i> {{ status_excedido }}
+                                </h4>
+                                <p class="text-muted mb-0">Orçamento Excedido</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Orçamentos -->
+    <div class="row">
+        <div class="col-12">
+            {% if orcamentos %}
+                <div class="row">
+                    {% for orcamento in orcamentos %}
+                        <div class="col-12 col-lg-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-tag"></i> {{ orcamento.categoria.nome }}
+                                    </h5>
+                                    <span class="badge bg-{{ orcamento.get_status_badge().classe }}">
+                                        <i class="fas {{ orcamento.get_status_badge().icone }}"></i>
+                                        {{ orcamento.get_status_badge().texto }}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Informações Principais -->
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted">Limite</small>
+                                            <p class="h6 mb-0">R$ {{ "%.2f"|format(orcamento.limite) }}</p>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <small class="text-muted">Gasto</small>
+                                            <p class="h6 mb-0">R$ {{ "%.2f"|format(orcamento.get_gasto_atual()) }}</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Barra de Progresso -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <small class="text-muted">Progresso</small>
+                                            <small class="text-muted">{{ "%.1f"|format(orcamento.get_percentual_usado()) }}%</small>
+                                        </div>
+                                        <div class="progress" style="height: 25px;">
+                                            {% set percentual = orcamento.get_percentual_usado() %}
+                                            {% if percentual >= 100 %}
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                                                    <small class="text-white fw-bold">Excedido</small>
+                                                </div>
+                                            {% elif percentual >= orcamento.alerta_percentual %}
+                                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ percentual }}%;" aria-valuenow="{{ percentual }}" aria-valuemin="0" aria-valuemax="100">
+                                                    <small class="text-dark fw-bold">{{ "%.0f"|format(percentual) }}%</small>
+                                                </div>
+                                            {% else %}
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentual }}%;" aria-valuenow="{{ percentual }}" aria-valuemin="0" aria-valuemax="100">
+                                                    <small class="text-white fw-bold">{{ "%.0f"|format(percentual) }}%</small>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Detalhes -->
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted">Restante</small>
+                                            <p class="h6 mb-0">R$ {{ "%.2f"|format(orcamento.get_restante()) }}</p>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <small class="text-muted">Dias Restantes</small>
+                                            <p class="h6 mb-0">{{ orcamento.get_dias_restantes_mes() }} dias</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Alerta de Projeção -->
+                                    {% set alerta = orcamento.get_alerta_projecao() %}
+                                    <div class="alert alert-{{ alerta.classe }} mb-3" role="alert">
+                                        <small>
+                                            <i class="fas fa-chart-line"></i>
+                                            {{ alerta.mensagem }}
+                                        </small>
+                                    </div>
+
+                                    <!-- Ações -->
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <a href="{{ url_for('orcamentos.editar_orcamento', orcamento_id=orcamento.id) }}" class="btn btn-sm btn-warning flex-grow-1">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                        <form method="POST" action="{{ url_for('orcamentos.deletar_orcamento', orcamento_id=orcamento.id) }}" style="flex-grow: 1;">
+                                            <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Tem certeza?')">
+                                                <i class="fas fa-trash"></i> Deletar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum orçamento definido para este mês</h5>
+                        <p class="text-muted mb-3">Crie um orçamento para começar a acompanhar suas metas de gastos</p>
+                        <a href="{{ url_for('orcamentos.criar_orcamento') }}" class="btn btn-primary">
+                            <i class="fas fa-plus-circle"></i> Criar Primeiro Orçamento
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row mt-4 mb-4">
+        <div class="col-12">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center flex-wrap">
+                <a href="{{ url_for('orcamentos.historico_orcamentos') }}" class="btn btn-info btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-history"></i> Ver Histórico
+                </a>
+                <a href="{{ url_for('dashboard.home') }}" class="btn btn-secondary btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Orçamentos - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-1">
+                <i class="fas fa-history"></i> Histórico de Orçamentos
+            </h1>
+            <p class="text-muted">Acompanhe seus orçamentos anteriores</p>
+        </div>
+    </div>
+
+    <!-- Seletor de Período -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar"></i> Selecionar Período
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('orcamentos.historico_orcamentos') }}" class="row g-2">
+                        <div class="col-12 col-md-6">
+                            <label for="mes" class="form-label">Mês</label>
+                            <select class="form-select" id="mes" name="mes" required>
+                                <option value="">Selecione um mês</option>
+                                {% set meses_dict = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'} %}
+                                {% for m, a in meses_disponiveis %}
+                                    <option value="{{ m }}" {% if m == mes_numero %}selected{% endif %}>
+                                        {{ meses_dict[m] }} de {{ a }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Visualizar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo do Período -->
+    <div class="row mb-4">
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-info h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-muted mb-0">Período</h6>
+                    <h3 class="text-info mt-2">{{ mes }}/{{ ano }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-muted mb-0">Limite Total</h6>
+                    <h3 class="text-primary mt-2">R$ {{ "%.2f"|format(total_limite) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-warning h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-muted mb-0">Gasto Total</h6>
+                    <h3 class="text-warning mt-2">R$ {{ "%.2f"|format(total_gasto) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3">
+            <div class="card border-success h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-muted mb-0">Disponível</h6>
+                    <h3 class="text-success mt-2">R$ {{ "%.2f"|format(total_limite - total_gasto) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Orçamentos -->
+    <div class="row">
+        <div class="col-12">
+            {% if orcamentos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-end">Limite</th>
+                                <th class="text-end">Gasto</th>
+                                <th class="text-end">Restante</th>
+                                <th class="text-center">Percentual</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orcamento in orcamentos %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ orcamento.categoria.nome }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        R$ {{ "%.2f"|format(orcamento.limite) }}
+                                    </td>
+                                    <td class="text-end">
+                                        R$ {{ "%.2f"|format(orcamento.get_gasto_atual()) }}
+                                    </td>
+                                    <td class="text-end">
+                                        R$ {{ "%.2f"|format(orcamento.get_restante()) }}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="progress" style="height: 20px;">
+                                            {% set percentual = orcamento.get_percentual_usado() %}
+                                            {% if percentual >= 100 %}
+                                                <div class="progress-bar bg-danger" style="width: 100%;"></div>
+                                            {% elif percentual >= orcamento.alerta_percentual %}
+                                                <div class="progress-bar bg-warning" style="width: {{ percentual }}%;"></div>
+                                            {% else %}
+                                                <div class="progress-bar bg-success" style="width: {{ percentual }}%;"></div>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ "%.1f"|format(percentual) }}%</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ orcamento.get_status_badge().classe }}">
+                                            <i class="fas {{ orcamento.get_status_badge().icone }}"></i>
+                                            {{ orcamento.get_status_badge().texto }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td><strong>Total</strong></td>
+                                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_limite) }}</strong></td>
+                                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_gasto) }}</strong></td>
+                                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_limite - total_gasto) }}</strong></td>
+                                <td class="text-center">
+                                    <strong>
+                                        {% if total_limite > 0 %}
+                                            {{ "%.1f"|format((total_gasto / total_limite) * 100) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </strong>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum orçamento encontrado para este período</h5>
+                        <p class="text-muted">Selecione outro período ou crie um novo orçamento</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row mt-4 mb-4">
+        <div class="col-12">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center flex-wrap">
+                <a href="{{ url_for('orcamentos.listar_orcamentos') }}" class="btn btn-primary btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-bullseye"></i> Orçamentos Atuais
+                </a>
+                <a href="{{ url_for('dashboard.home') }}" class="btn btn-secondary btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

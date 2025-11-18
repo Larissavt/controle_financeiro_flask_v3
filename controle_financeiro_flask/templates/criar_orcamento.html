@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Criar Orçamento - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle"></i> Criar Novo Orçamento
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="formCriarOrcamento" method="POST" action="{{ url_for('orcamentos.criar_orcamento') }}">
+                        <!-- Categoria -->
+                        <div class="mb-3">
+                            <label for="categoria_id" class="form-label">
+                                Categoria <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="categoria_id" name="categoria_id" required>
+                                <option value="">Selecione uma categoria</option>
+                                {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Escolha a categoria para definir o orçamento</small>
+                        </div>
+
+                        <!-- Limite -->
+                        <div class="mb-3">
+                            <label for="limite" class="form-label">
+                                Limite Mensal (R$) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="limite" name="limite" 
+                                       placeholder="0.00" 
+                                       step="0.01" 
+                                       min="0.01"
+                                       required>
+                            </div>
+                            <small class="text-muted">O valor máximo que você deseja gastar nesta categoria por mês</small>
+                        </div>
+
+                        <!-- Percentual de Alerta -->
+                        <div class="mb-3">
+                            <label for="alerta_percentual" class="form-label">
+                                Percentual de Alerta <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="alerta_percentual" name="alerta_percentual" 
+                                       value="80" 
+                                       step="1" 
+                                       min="1"
+                                       max="100"
+                                       required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Você receberá um aviso quando atingir este percentual do orçamento</small>
+                            
+                            <!-- Visualização do alerta -->
+                            <div class="mt-2">
+                                <small class="text-muted">Exemplo:</small>
+                                <div class="alert alert-info alert-sm py-2 px-3 mb-0" role="alert">
+                                    <small>
+                                        <i class="fas fa-info-circle"></i>
+                                        Se o limite é R$ 1.000,00 e o alerta é 80%, você será avisado ao gastar R$ 800,00
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mês e Ano -->
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label for="mes" class="form-label">
+                                    Mês <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="mes" name="mes" required>
+                                    <option value="">Selecione</option>
+                                    <option value="1" {% if mes_atual == 1 %}selected{% endif %}>Janeiro</option>
+                                    <option value="2" {% if mes_atual == 2 %}selected{% endif %}>Fevereiro</option>
+                                    <option value="3" {% if mes_atual == 3 %}selected{% endif %}>Março</option>
+                                    <option value="4" {% if mes_atual == 4 %}selected{% endif %}>Abril</option>
+                                    <option value="5" {% if mes_atual == 5 %}selected{% endif %}>Maio</option>
+                                    <option value="6" {% if mes_atual == 6 %}selected{% endif %}>Junho</option>
+                                    <option value="7" {% if mes_atual == 7 %}selected{% endif %}>Julho</option>
+                                    <option value="8" {% if mes_atual == 8 %}selected{% endif %}>Agosto</option>
+                                    <option value="9" {% if mes_atual == 9 %}selected{% endif %}>Setembro</option>
+                                    <option value="10" {% if mes_atual == 10 %}selected{% endif %}>Outubro</option>
+                                    <option value="11" {% if mes_atual == 11 %}selected{% endif %}>Novembro</option>
+                                    <option value="12" {% if mes_atual == 12 %}selected{% endif %}>Dezembro</option>
+                                </select>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label for="ano" class="form-label">
+                                    Ano <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="ano" name="ano" 
+                                       value="{{ ano_atual }}" 
+                                       min="2020" 
+                                       max="2100"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Resumo -->
+                        <div class="alert alert-info" id="resumoOrcamento" style="display: none;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Resumo:</strong><br>
+                            <span id="resumoTexto"></span>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check-circle"></i> Criar Orçamento
+                            </button>
+                            <a href="{{ url_for('orcamentos.listar_orcamentos') }}" class="btn btn-secondary">
+                                <i class="fas fa-times-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de Dicas -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb"></i> Dicas para Definir Orçamentos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Analise seus gastos históricos para definir limites realistas</li>
+                        <li>Comece com um percentual de alerta em 80% para ter margem</li>
+                        <li>Você pode criar orçamentos para meses futuros também</li>
+                        <li>Revise seus orçamentos mensalmente e ajuste conforme necessário</li>
+                        <li>Use os alertas para manter o controle e evitar surpresas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para atualizar resumo -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categoriaSelect = document.getElementById('categoria_id');
+    const limiteInput = document.getElementById('limite');
+    const alertaInput = document.getElementById('alerta_percentual');
+    const mesSelect = document.getElementById('mes');
+    const anoInput = document.getElementById('ano');
+    const resumoOrcamento = document.getElementById('resumoOrcamento');
+    const resumoTexto = document.getElementById('resumoTexto');
+
+    const meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    function atualizarResumo() {
+        const categoria = categoriaSelect.options[categoriaSelect.selectedIndex].text;
+        const limite = parseFloat(limiteInput.value) || 0;
+        const alerta = parseFloat(alertaInput.value) || 80;
+        const mes = meses[parseInt(mesSelect.value)] || '';
+        const ano = anoInput.value || '';
+
+        if (categoria !== 'Selecione uma categoria' && limite > 0 && mes && ano) {
+            const valorAlerta = (limite * alerta / 100).toFixed(2);
+            resumoTexto.innerHTML = `
+                <strong>${categoria}</strong> - 
+                Limite: R$ ${limite.toFixed(2)} - 
+                Alerta em: R$ ${valorAlerta} (${alerta}%) - 
+                ${mes}/${ano}
+            `;
+            resumoOrcamento.style.display = 'block';
+        } else {
+            resumoOrcamento.style.display = 'none';
+        }
+    }
+
+    categoriaSelect.addEventListener('change', atualizarResumo);
+    limiteInput.addEventListener('input', atualizarResumo);
+    alertaInput.addEventListener('input', atualizarResumo);
+    mesSelect.addEventListener('change', atualizarResumo);
+    anoInput.addEventListener('input', atualizarResumo);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-1">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </h1>
+            <p class="text-muted">{{ mes }} de {{ ano }}</p>
+        </div>
+    </div>
+
+    <!-- Cards de resumo -->
+    <div class="row mb-4">
+        <div class="col-12 col-sm-6 col-lg-4 mb-3">
+            <div class="card border-success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Receitas</h6>
+                            <h3 class="text-success mt-2">
+                                R$ {{ "%.2f"|format(total_receitas) }}
+                            </h3>
+                        </div>
+                        <i class="fas fa-arrow-up fa-2x text-success opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4 mb-3">
+            <div class="card border-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Despesas</h6>
+                            <h3 class="text-danger mt-2">
+                                R$ {{ "%.2f"|format(total_despesas) }}
+                            </h3>
+                        </div>
+                        <i class="fas fa-arrow-down fa-2x text-danger opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4 mb-3">
+            <div class="card {% if saldo >= 0 %}border-info{% else %}border-warning{% endif %} h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted mb-0">Saldo Final</h6>
+                            <h3 class="{% if saldo >= 0 %}text-info{% else %}text-warning{% endif %} mt-2">
+                                R$ {{ "%.2f"|format(saldo) }}
+                            </h3>
+                        </div>
+                        <i class="fas fa-balance-scale fa-2x {% if saldo >= 0 %}text-info{% else %}text-warning{% endif %} opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter"></i> Buscar e Filtrar Transações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="formFiltro" class="row g-2">
+                        <!-- Busca por Descrição -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label for="filtroDescricao" class="form-label">Descrição</label>
+                            <input type="text" class="form-control" id="filtroDescricao" 
+                                   placeholder="Buscar por descrição...">
+                        </div>
+
+                        <!-- Filtro por Categoria -->
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label for="filtroCategoria" class="form-label">Categoria</label>
+                            <select class="form-select" id="filtroCategoria">
+                                <option value="">Todas as categorias</option>
+                                {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Filtro por Tipo -->
+                        <div class="col-12 col-md-6 col-lg-2">
+                            <label for="filtroTipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="filtroTipo">
+                                <option value="">Ambas</option>
+                                <option value="receita">Receitas</option>
+                                <option value="despesa">Despesas</option>
+                            </select>
+                        </div>
+
+                        <!-- Botão Limpar -->
+                        <div class="col-12 col-md-6 col-lg-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-secondary w-100" id="btnLimpar">
+                                <i class="fas fa-redo"></i> Limpar Filtros
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo por categoria e transações -->
+    <div class="row">
+        <!-- Despesas por Categoria -->
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> Despesas por Categoria
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if despesas_por_categoria %}
+                        <div class="list-group">
+                            {% for categoria, valor in despesas_por_categoria.items() %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ categoria }}</span>
+                                    <span class="badge bg-danger rounded-pill">
+                                        R$ {{ "%.2f"|format(valor) }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-4">
+                            <i class="fas fa-inbox"></i><br>
+                            Nenhuma despesa registrada neste mês
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Transações do Mês -->
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Transações do Mês
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <div id="listaTransacoes">
+                        {% if transacoes_mes %}
+                            <div class="list-group" id="transacoesContainer">
+                                {% for transacao in transacoes_mes|reverse %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-start transacao-item" 
+                                         data-transacao-id="{{ transacao.id }}">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ transacao.descricao }}</h6>
+                                            <small class="text-muted">
+                                                {{ transacao.categoria.nome }} | 
+                                                {{ transacao.data.strftime('%d/%m/%Y') }}
+                                            </small>
+                                        </div>
+                                        <div class="text-end ms-2">
+                                            <span class="badge {% if transacao.tipo == 'receita' %}bg-success{% else %}bg-danger{% endif %} mb-2 d-block">
+                                                {% if transacao.tipo == 'receita' %}+{% else %}-{% endif %}
+                                                R$ {{ "%.2f"|format(transacao.valor) }}
+                                            </span>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{{ url_for('transacoes.editar_transacao', transacao_id=transacao.id) }}" 
+                                                   class="btn btn-outline-warning" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form method="POST" action="{{ url_for('transacoes.deletar_transacao', transacao_id=transacao.id) }}" 
+                                                      style="display: inline;">
+                                                    <button type="submit" class="btn btn-outline-danger" title="Deletar"
+                                                            onclick="return confirm('Tem certeza?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-4">
+                                <i class="fas fa-inbox"></i><br>
+                                Nenhuma transação registrada neste mês
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div id="resultadoFiltro" style="display: none;">
+                        <div id="transacoesFiltradas"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de ação rápida -->
+    <div class="row mt-4 mb-4">
+        <div class="col-12">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center flex-wrap">
+                <a href="{{ url_for('transacoes.nova_receita') }}" class="btn btn-success btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-plus-circle"></i> Receita
+                </a>
+                <a href="{{ url_for('transacoes.nova_despesa') }}" class="btn btn-danger btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-minus-circle"></i> Despesa
+                </a>
+                <a href="{{ url_for('categorias.listar_categorias') }}" class="btn btn-info btn-lg flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-tags"></i> Categorias
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para filtro e busca -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filtroDescricao = document.getElementById('filtroDescricao');
+    const filtroCategoria = document.getElementById('filtroCategoria');
+    const filtroTipo = document.getElementById('filtroTipo');
+    const btnLimpar = document.getElementById('btnLimpar');
+    const listaTransacoes = document.getElementById('listaTransacoes');
+    const resultadoFiltro = document.getElementById('resultadoFiltro');
+    const transacoesFiltradas = document.getElementById('transacoesFiltradas');
+
+    // Aplicar filtros
+    function aplicarFiltros() {
+        const descricao = filtroDescricao.value.toLowerCase();
+        const categoria = filtroCategoria.value;
+        const tipo = filtroTipo.value;
+
+        const transacoes = document.querySelectorAll('.transacao-item');
+        let visiveisCount = 0;
+
+        transacoes.forEach(transacao => {
+            let mostrar = true;
+
+            // Filtro de descrição
+            if (descricao) {
+                const descricaoTransacao = transacao.querySelector('h6').textContent.toLowerCase();
+                mostrar = mostrar && descricaoTransacao.includes(descricao);
+            }
+
+            // Filtro de categoria
+            if (categoria) {
+                const categoriaTransacao = transacao.querySelector('small').textContent;
+                mostrar = mostrar && categoriaTransacao.includes(
+                    document.querySelector(`#filtroCategoria option[value="${categoria}"]`).textContent
+                );
+            }
+
+            // Filtro de tipo
+            if (tipo) {
+                const badgeTexto = transacao.querySelector('.badge').textContent;
+                const tipoTransacao = badgeTexto.includes('+') ? 'receita' : 'despesa';
+                mostrar = mostrar && tipoTransacao === tipo;
+            }
+
+            transacao.style.display = mostrar ? 'flex' : 'none';
+            if (mostrar) visiveisCount++;
+        });
+
+        // Mostrar mensagem se nenhuma transação encontrada
+        if (visiveisCount === 0) {
+            listaTransacoes.style.display = 'none';
+            resultadoFiltro.style.display = 'block';
+            transacoesFiltradas.innerHTML = `
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-search"></i> Nenhuma transação encontrada com os filtros aplicados.
+                </div>
+            `;
+        } else {
+            listaTransacoes.style.display = 'block';
+            resultadoFiltro.style.display = 'none';
+        }
+    }
+
+    // Limpar filtros
+    btnLimpar.addEventListener('click', function() {
+        filtroDescricao.value = '';
+        filtroCategoria.value = '';
+        filtroTipo.value = '';
+        listaTransacoes.style.display = 'block';
+        resultadoFiltro.style.display = 'none';
+        
+        document.querySelectorAll('.transacao-item').forEach(t => {
+            t.style.display = 'flex';
+        });
+    });
+
+    // Listeners para filtros
+    filtroDescricao.addEventListener('input', aplicarFiltros);
+    filtroCategoria.addEventListener('change', aplicarFiltros);
+    filtroTipo.addEventListener('change', aplicarFiltros);
+
+    // Debounce para melhor performance
+    let timeoutFiltro;
+    [filtroDescricao, filtroCategoria, filtroTipo].forEach(elemento => {
+        elemento.addEventListener('input', function() {
+            clearTimeout(timeoutFiltro);
+            timeoutFiltro = setTimeout(aplicarFiltros, 300);
+        });
+    });
+});
+</script>
+{% endblock %}

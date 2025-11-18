@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Transação - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> Editar Transação
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="formEditarTransacao" method="POST" action="{{ url_for('transacoes.editar_transacao', transacao_id=transacao.id) }}">
+                        <!-- Tipo de Transação (Somente Leitura) -->
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label">Tipo de Transação</label>
+                            <input type="text" class="form-control" id="tipo" value="{% if transacao.tipo == 'receita' %}Receita{% else %}Despesa{% endif %}" disabled>
+                            <small class="text-muted">O tipo não pode ser alterado</small>
+                        </div>
+
+                        <!-- Descrição -->
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">
+                                Descrição <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="descricao" name="descricao" 
+                                   value="{{ transacao.descricao }}" 
+                                   placeholder="Ex: Supermercado, Salário, etc."
+                                   maxlength="255"
+                                   required>
+                            <div id="descricaoFeedback" class="invalid-feedback d-block" style="display: none;"></div>
+                            <small class="text-muted">
+                                <span id="descricaoCounter">0</span>/255 caracteres
+                            </small>
+                        </div>
+
+                        <!-- Valor -->
+                        <div class="mb-3">
+                            <label for="valor" class="form-label">
+                                Valor (R$) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="valor" name="valor" 
+                                       value="{{ transacao.valor }}" 
+                                       placeholder="0.00" 
+                                       step="0.01" 
+                                       min="0.01"
+                                       required>
+                            </div>
+                            <div id="valorFeedback" class="invalid-feedback d-block" style="display: none;"></div>
+                            <small class="text-muted" id="valorAviso"></small>
+                        </div>
+
+                        <!-- Categoria -->
+                        <div class="mb-3">
+                            <label for="categoria_id" class="form-label">
+                                Categoria <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="categoria_id" name="categoria_id" required>
+                                <option value="">Selecione uma categoria</option>
+                                {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}" {% if categoria.id == transacao.categoria_id %}selected{% endif %}>
+                                        {{ categoria.nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Data -->
+                        <div class="mb-3">
+                            <label for="data" class="form-label">
+                                Data <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" id="data" name="data" 
+                                   value="{{ data_formatada }}"
+                                   required>
+                        </div>
+
+                        <!-- Resumo da Alteração -->
+                        <div class="alert alert-info" id="resumoAlteracao" style="display: none;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Resumo da alteração:</strong><br>
+                            <span id="resumoTexto"></span>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-check-circle"></i> Atualizar Transação
+                            </button>
+                            <a href="{{ url_for('dashboard.home') }}" class="btn btn-secondary">
+                                <i class="fas fa-times-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de Informações -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history"></i> Informações da Transação
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Data de Criação:</strong> 
+                        {{ transacao.data.strftime('%d/%m/%Y às %H:%M') }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Tipo:</strong>
+                        <span class="badge {% if transacao.tipo == 'receita' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ transacao.tipo.capitalize() }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para validação em tempo real -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const descricaoInput = document.getElementById('descricao');
+    const valorInput = document.getElementById('valor');
+    const descricaoCounter = document.getElementById('descricaoCounter');
+    const descricaoFeedback = document.getElementById('descricaoFeedback');
+    const valorFeedback = document.getElementById('valorFeedback');
+    const valorAviso = document.getElementById('valorAviso');
+    const resumoAlteracao = document.getElementById('resumoAlteracao');
+    const resumoTexto = document.getElementById('resumoTexto');
+
+    // Contador de caracteres
+    descricaoInput.addEventListener('input', function() {
+        descricaoCounter.textContent = this.value.length;
+        validarDescricao();
+        atualizarResumo();
+    });
+
+    // Validação de valor
+    valorInput.addEventListener('input', function() {
+        validarValor();
+        atualizarResumo();
+    });
+
+    // Função para validar descrição
+    function validarDescricao() {
+        const descricao = descricaoInput.value.trim();
+        let valido = true;
+        let mensagem = '';
+
+        if (!descricao) {
+            mensagem = 'A descrição é obrigatória';
+            valido = false;
+        } else if (descricao.length < 3) {
+            mensagem = 'A descrição deve ter pelo menos 3 caracteres';
+            valido = false;
+        }
+
+        if (valido) {
+            descricaoInput.classList.remove('is-invalid');
+            descricaoFeedback.style.display = 'none';
+        } else {
+            descricaoInput.classList.add('is-invalid');
+            descricaoFeedback.textContent = mensagem;
+            descricaoFeedback.style.display = 'block';
+        }
+
+        return valido;
+    }
+
+    // Função para validar valor
+    function validarValor() {
+        const valor = parseFloat(valorInput.value);
+        let valido = true;
+        let mensagem = '';
+        let aviso = '';
+
+        if (!valorInput.value) {
+            mensagem = 'O valor é obrigatório';
+            valido = false;
+        } else if (isNaN(valor) || valor <= 0) {
+            mensagem = 'O valor deve ser um número positivo';
+            valido = false;
+        } else if (valor > 999999.99) {
+            mensagem = 'O valor é muito alto';
+            valido = false;
+        } else if (valor > 10000) {
+            aviso = '⚠️ Atenção: Este é um valor muito alto';
+        }
+
+        if (valido) {
+            valorInput.classList.remove('is-invalid');
+            valorFeedback.style.display = 'none';
+        } else {
+            valorInput.classList.add('is-invalid');
+            valorFeedback.textContent = mensagem;
+            valorFeedback.style.display = 'block';
+        }
+
+        valorAviso.textContent = aviso;
+    }
+
+    // Função para atualizar resumo
+    function atualizarResumo() {
+        const descricao = descricaoInput.value.trim();
+        const valor = valorInput.value;
+        const categoria = document.getElementById('categoria_id').options[document.getElementById('categoria_id').selectedIndex].text;
+
+        if (descricao && valor && categoria !== 'Selecione uma categoria') {
+            resumoTexto.innerHTML = `
+                <strong>${descricao}</strong> - 
+                R$ ${parseFloat(valor).toFixed(2)} - 
+                ${categoria}
+            `;
+            resumoAlteracao.style.display = 'block';
+        } else {
+            resumoAlteracao.style.display = 'none';
+        }
+    }
+
+    // Validar ao enviar
+    document.getElementById('formEditarTransacao').addEventListener('submit', function(e) {
+        if (!validarDescricao() || !validarValor()) {
+            e.preventDefault();
+            alert('Por favor, corrija os erros no formulário');
+        }
+    });
+});
+</script>
+{% endblock %}

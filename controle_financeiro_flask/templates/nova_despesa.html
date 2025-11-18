@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Despesa - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-minus-circle"></i> Registrar Nova Despesa
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('transacoes.nova_despesa') }}">
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" placeholder="Ex: Alimentação, Transporte, etc." required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="valor" class="form-label">Valor (R$)</label>
+                        <input type="number" class="form-control" id="valor" name="valor" placeholder="0.00" step="0.01" min="0.01" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="categoria_id" class="form-label">Categoria</label>
+                        <select class="form-select" id="categoria_id" name="categoria_id" required>
+                            <option value="">Selecione uma categoria</option>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if not categorias %}
+                            <small class="text-danger">
+                                <i class="fas fa-exclamation-circle"></i> 
+                                Você precisa criar uma categoria primeiro. 
+                                <a href="{{ url_for('categorias.listar_categorias') }}">Clique aqui</a>
+                            </small>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="data" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="data" name="data">
+                        <small class="text-muted">Se não informar, será usada a data de hoje</small>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg" {% if not categorias %}disabled{% endif %}>
+                            <i class="fas fa-check-circle"></i> Registrar Despesa
+                        </button>
+                        <a href="{{ url_for('dashboard.home') }}" class="btn btn-secondary">
+                            <i class="fas fa-times-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

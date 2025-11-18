@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Orçamento - Controle Financeiro Pessoal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> Editar Orçamento
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="formEditarOrcamento" method="POST" action="{{ url_for('orcamentos.editar_orcamento', orcamento_id=orcamento.id) }}">
+                        <!-- Informações da Categoria (Somente Leitura) -->
+                        <div class="mb-3">
+                            <label class="form-label">Categoria</label>
+                            <input type="text" class="form-control" value="{{ orcamento.categoria.nome }}" disabled>
+                            <small class="text-muted">A categoria não pode ser alterada</small>
+                        </div>
+
+                        <!-- Período (Somente Leitura) -->
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Mês</label>
+                                <input type="text" class="form-control" value="{% if orcamento.mes == 1 %}Janeiro{% elif orcamento.mes == 2 %}Fevereiro{% elif orcamento.mes == 3 %}Março{% elif orcamento.mes == 4 %}Abril{% elif orcamento.mes == 5 %}Maio{% elif orcamento.mes == 6 %}Junho{% elif orcamento.mes == 7 %}Julho{% elif orcamento.mes == 8 %}Agosto{% elif orcamento.mes == 9 %}Setembro{% elif orcamento.mes == 10 %}Outubro{% elif orcamento.mes == 11 %}Novembro{% else %}Dezembro{% endif %}" disabled>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Ano</label>
+                                <input type="text" class="form-control" value="{{ orcamento.ano }}" disabled>
+                            </div>
+                        </div>
+
+                        <!-- Limite -->
+                        <div class="mb-3">
+                            <label for="limite" class="form-label">
+                                Limite Mensal (R$) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="limite" name="limite" 
+                                       value="{{ orcamento.limite }}" 
+                                       placeholder="0.00" 
+                                       step="0.01" 
+                                       min="0.01"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Percentual de Alerta -->
+                        <div class="mb-3">
+                            <label for="alerta_percentual" class="form-label">
+                                Percentual de Alerta <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="alerta_percentual" name="alerta_percentual" 
+                                       value="{{ orcamento.alerta_percentual }}" 
+                                       step="1" 
+                                       min="1"
+                                       max="100"
+                                       required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+
+                        <!-- Status Atual -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Status Atual</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Gasto</small>
+                                        <p class="h6 mb-0">R$ {{ "%.2f"|format(orcamento.get_gasto_atual()) }}</p>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <small class="text-muted">Percentual</small>
+                                        <p class="h6 mb-0">{{ "%.1f"|format(orcamento.get_percentual_usado()) }}%</p>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 20px;">
+                                    {% set percentual = orcamento.get_percentual_usado() %}
+                                    {% if percentual >= 100 %}
+                                        <div class="progress-bar bg-danger" style="width: 100%;"></div>
+                                    {% elif percentual >= orcamento.alerta_percentual %}
+                                        <div class="progress-bar bg-warning" style="width: {{ percentual }}%;"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-success" style="width: {{ percentual }}%;"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informações Adicionais -->
+                        <div class="alert alert-info">
+                            <small>
+                                <strong>Restante:</strong> R$ {{ "%.2f"|format(orcamento.get_restante()) }}<br>
+                                <strong>Dias Restantes:</strong> {{ orcamento.get_dias_restantes_mes() }} dias<br>
+                                <strong>Projeção:</strong> R$ {{ "%.2f"|format(orcamento.get_projecao_gasto()) }}
+                            </small>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-check-circle"></i> Atualizar Orçamento
+                            </button>
+                            <a href="{{ url_for('orcamentos.listar_orcamentos') }}" class="btn btn-secondary">
+                                <i class="fas fa-times-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de Histórico -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history"></i> Informações do Orçamento
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Criado em:</strong> 
+                        {{ orcamento.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Última atualização:</strong> 
+                        {{ orcamento.data_atualizacao.strftime('%d/%m/%Y às %H:%M') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
